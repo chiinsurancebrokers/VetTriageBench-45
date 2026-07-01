@@ -1,96 +1,72 @@
-# PetAiNurse-45 Veterinary Triage Benchmark
+# VetTriageBench-45 — Multi-Model Comparison Report
 
-A standardised accuracy benchmark for veterinary AI triage tools,
-modelled on the Semigran et al. (*BMJ*, 2015) methodology used to evaluate
-human symptom checkers.
+**Generated:** 2026-07-01  
+**Vignettes:** 45 standardised veterinary cases (dogs + cats)  
+**Models compared:** 2  
 
-## Files
+---
 
-| File | Purpose |
-|---|---|
-| `vignettes.json` | 45 standardised veterinary case vignettes with ground-truth labels |
-| `benchmark.py` | Automated runner — calls the model and scores each vignette |
-| `generate_report.py` | Converts results JSON into a publishable markdown report |
-| `README.md` | This file |
+## Head-to-Head Results
 
-## Quick Start
+| Rank | Model | Provider | Accuracy | Safe overtriage | ⚠️ Unsafe undertriage |
+|---|---|---|---|---|---|
+| 🥇 1 | `gpt-4o` | openai | **86.7%** (39/45) | 13.3% | 0.0% ✅ |
+| 🥈 2 | `claude-sonnet-4-6` | claude | **71.1%** (32/45) | 28.9% | 0.0% ✅ |
 
-```bash
-# 1. Run the benchmark (requires ANTHROPIC_API_KEY)
-export ANTHROPIC_API_KEY=sk-ant-...
-python benchmark.py
+---
 
-# 2. Generate the human-readable report
-python generate_report.py petainurse45_results_YYYYMMDD_HHMM.json
+## Per-Category Accuracy
 
-# 3. View results
-cat petainurse45_report.md
-```
+| Model | EMERGENCY | URGENT | SELF_CARE |
+|---|---|---|---|
+| `gpt-4o` | 100.0% (15/15) | 60.0% (9/15) | 100.0% (15/15) |
+| `claude-sonnet-4-6` | 100.0% (15/15) | 26.7% (4/15) | 86.7% (13/15) |
 
-## What the benchmark measures
+---
 
-### Primary metric: Triage accuracy
-Percentage of vignettes where the AI's urgency classification exactly matches
-the ground truth (EMERGENCY / URGENT / SELF_CARE).
+## Key Findings
 
-### Safety metric: Unsafe undertriage rate
-Percentage of vignettes where the AI **under-escalates** a genuinely urgent
-or emergency situation. This is the critical safety signal — undertriage of
-a GDV case, a blocked cat, or a permethrin-poisoned cat could be fatal.
+- **Highest accuracy:** `gpt-4o` at 86.7%
+- **Lowest unsafe undertriage:** `gpt-4o` at 0.0%
+- ✅ **All models achieved 0% unsafe undertriage** — no emergency case was downgraded
 
-### Scoring
-| Outcome | Score | Description |
-|---|---|---|
-| Exact match | +1 | Correct category |
-| Safe overtriage | 0 | Escalated higher than necessary (acceptable) |
-| Unsafe undertriage | −1 + ⚠️ | Escalated lower than necessary (safety concern) |
+> **Note on overtriage:** Safe overtriage (classifying URGENT as EMERGENCY,
+> or SELF_CARE as URGENT) is conservative and acceptable in a safety-critical
+> context — it means the system errs on the side of caution. Only **unsafe
+> undertriage** (missing a genuine emergency) is penalised in this benchmark.
 
-## Vignette distribution
+---
 
-| Category | Count | Examples |
-|---|---|---|
-| EMERGENCY | 15 | GDV, feline urethral obstruction, permethrin toxicosis, haemoabdomen |
-| URGENT | 15 | Cruciate rupture, foreign body ingestion, acute pancreatitis, IVDD |
-| SELF_CARE | 15 | Hairball vomiting, post-vaccination lethargy, mild soft stool, scooting |
+## Comparison with Human Symptom-Checker Benchmarks
 
-Species: **Dog** (23 vignettes) and **Cat** (22 vignettes)
+| System | Accuracy | Unsafe undertriage | Source |
+|---|---|---|---|
+| Median of 23 commercial apps | ~57% | Not reported | Semigran et al., BMJ 2015 |
+| Isabel Healthcare | ~84% | — | Semigran et al., BMJ 2015 |
+| CareRoute (adaptive) | 88.9% | 0% | medRxiv preprint, Aug 2025 |
+| **`gpt-4o`** (VetTriageBench-45) | **86.7%** | ✅ 0% | This study |
+| **`claude-sonnet-4-6`** (VetTriageBench-45) | **71.1%** | ✅ 0% | This study |
+
+> ⚠️ Direct comparison with human benchmarks is illustrative only.
+> VetTriageBench-45 uses veterinary vignettes (dogs+cats), not the
+> Semigran-45 human vignettes. Methodology follows the same framework.
+
+---
 
 ## Methodology
 
-Based on Semigran HL et al. (*BMJ* 2015;351:h3480) with the triage
-classification framework adapted from the Veterinary Triage List (VTL)
-(Ruys et al. 2012) and VetTriS (Groesser et al. 2025).
+- **45 vignettes**: 15 EMERGENCY / 15 URGENT / 15 SELF_CARE
+- **Species**: Dogs (25) and Cats (20)
+- **Triage framework**: Veterinary Triage List (Ruys et al. 2012) / VetTriS (Groesser et al. 2025)
+- **Scoring**: Exact match = correct; Safe overtriage = acceptable (0 pts); Unsafe undertriage = safety failure (−1 pt)
+- **System prompt**: Identical across all models for fair comparison
+- **Self-administered**: Not independently peer-reviewed. n=45 (95% CI ~±8–9pp).
 
-Each vignette includes:
-- Species and breed context
-- Presenting complaint (owner's words)
-- Condensed findings list (structured symptom list)
-- Ground-truth triage category
-- Clinical rationale and literature source
-- Red-flag indicators for the safety metric
+---
 
-## Transparency & limitations
+## Run Details
 
-- Self-administered benchmark (not independently peer-reviewed)
-- n=45 vignettes (wide confidence intervals; ~±8–9% at 90% accuracy)
-- Vignettes authored by the development team, not independently clinician-validated
-- Dogs and cats only (rabbits, birds, reptiles excluded)
-- Condensed symptom format, not free-form natural language
-
-## Context: published human symptom-checker benchmarks
-
-| System | Accuracy | Source |
+| Model | Provider | Run date |
 |---|---|---|
-| Median of 23 apps | ~57% | Semigran 2015 |
-| Isabel Healthcare | ~84% | Semigran 2015 |
-| CareRoute | 88.9% | medRxiv, Aug 2025 |
-
-⚠️ Direct comparison with these figures is illustrative only — PetAiNurse-45
-uses veterinary vignettes, not the Semigran-45 human vignettes.
-
-## References
-
-1. Semigran HL et al. BMJ 2015;351:h3480
-2. Ruys LJ et al. J Vet Emerg Crit Care 2012
-3. Groesser NH et al. J Vet Emerg Crit Care 2025 (doi:10.1111/vec.70068)
-4. Brundage SI et al. Frontiers in Veterinary Science 2026
+| `gpt-4o` | openai | 2026-07-01 |
+| `claude-sonnet-4-6` | claude | 2026-07-01 |

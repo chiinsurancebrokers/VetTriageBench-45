@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-VetTriageBench-45 — Multi-Model Comparison Report Generator
-===========================================================
-Reads multiple results JSON files and produces a head-to-head
-markdown report suitable for preprint or publication appendix.
+VetTriageBench-45 — Multi-Model Comparison Report Generator (v1.1)
+==================================================================
+Changes from v1.0:
+  - Removed ranking medals (CIs overlap; no statistically significant difference)
+  - Added URGENT tier analysis section (primary clinical weakness of all models)
+  - Separated veterinary vs human benchmark comparisons into distinct sections
+  - Added prompt-design bias note (EMERGENCY default inflates emergency scores)
 
 Usage:
     python3 compare.py results/results_claude*.json results/results_openai*.json
@@ -20,49 +23,69 @@ def load(path):
         return json.load(f)
 
 
+def overlap(ci_a, ci_b):
+    """Returns True if two [lo, hi] confidence intervals overlap."""
+    return ci_a[0] <= ci_b[1] and ci_b[0] <= ci_a[1]
+
+
 def generate(result_paths, output_path):
     results = [load(p) for p in result_paths]
     results.sort(key=lambda r: -r["triage_accuracy_pct"])
 
-    now    = datetime.now().strftime("%Y-%m-%d")
-    lines  = []
-    medals = ["🥇", "🥈", "🥉"] + ["  "] * 20
+    now = datetime.now().strftime("%Y-%m-%d")
+    lines = []
 
     # ── Header ────────────────────────────────────────────────────────────────
     lines += [
         "# VetTriageBench-45 — Multi-Model Comparison Report",
         "",
         f"**Generated:** {now}  ",
-        f"**Benchmark version:** {results[0].get('version','1.0')}  ",
+        f"**Benchmark version:** {results[0].get('version','1.0')} (report generator v1.1)  ",
         f"**Vignettes:** 45 standardised veterinary cases (25 dogs / 20 cats)  ",
         f"**Categories:** 15 EMERGENCY / 15 URGENT / 15 SELF_CARE  ",
         f"**Models compared:** {len(results)}  ",
         "",
-        "> **Validation status (v1.0):** Ground truth labels were drafted with",
-        "> AI assistance and cross-checked against MSD Veterinary Manual and",
-        "> VTL/VetTriS triage criteria. Formal expert veterinary consensus",
-        "> validation (≥3 practitioners, Cohen's κ ≥0.60) is planned for v2.0.",
-        "> Results should be interpreted as indicative pending that validation.",
+        "> **Validation status (v1.0):** Ground truth labels were drafted with AI assistance",
+        "> and cross-checked against MSD Veterinary Manual and VTL/VetTriS triage criteria.",
+        "> Formal expert veterinary consensus validation (≥3 practitioners, Cohen's κ ≥0.60)",
+        "> is planned for v2.0. Results should be interpreted as indicative pending that",
+        "> validation. n=45 yields 95% CI of approximately ±15pp — differences between",
+        "> models should not be over-interpreted.",
         "",
         "---",
         "",
     ]
 
-    # ── Head-to-head table ────────────────────────────────────────────────────
+    # ── Head-to-head table — NO medals, CI overlap noted ─────────────────────
     lines += [
-        "## Head-to-head results",
+        "## Overall results",
         "",
-        "| Rank | Model | Provider | Accuracy (95% CI) | Safe overtriage | ⚠ Unsafe undertriage |",
-        "|---|---|---|---|---|---|",
     ]
-    for i, r in enumerate(results):
+
+    # Check if all CIs overlap
+    if len(results) == 2:
+        ci_a = results[0].get("triage_accuracy_ci_95", [0, 100])
+        ci_b = results[1].get("triage_accuracy_ci_95", [0, 100])
+        if overlap(ci_a, ci_b):
+            lines += [
+                "> ⚠ **Statistical note:** The confidence intervals of all models overlap.",
+                "> The observed accuracy differences are **not statistically distinguishable**",
+                "> at n=45. No model ranking is implied by the ordering below.",
+                "",
+            ]
+
+    lines += [
+        "| Model | Provider | Accuracy (95% CI) | Safe overtriage | ⚠ Unsafe undertriage |",
+        "|---|---|---|---|---|",
+    ]
+    for r in results:
         ci = r.get("triage_accuracy_ci_95", [None, None])
-        ci_str = (f"[{ci[0]}–{ci[1]}%]" if ci[0] is not None else "")
+        ci_str = f"[{ci[0]}–{ci[1]}%]" if ci[0] is not None else ""
         unsafe_cell = (f"**{r['unsafe_undertriage_pct']}%** ❌"
                        if r["unsafe_undertriage_pct"] > 0
                        else f"{r['unsafe_undertriage_pct']}% ✅")
         lines.append(
-            f"| {medals[i]} {i+1} | `{r['model']}` | {r['provider']} | "
+            f"| `{r['model']}` | {r['provider']} | "
             f"**{r['triage_accuracy_pct']}%** ({r['n_exact']}/{r['n_vignettes']}) {ci_str} | "
             f"{r['overtriage_pct']}% | {unsafe_cell} |"
         )
@@ -92,12 +115,96 @@ def generate(result_paths, output_path):
             f"{cat_str('URGENT')} | {cat_str('SELF_CARE')} |"
         )
 
-    # ── Per-species breakdown ─────────────────────────────────────────────────
+    # ── URGENT tier analysis — NEW ────────────────────────────────────────────
     lines += [
         "",
         "---",
         "",
+        "## URGENT tier analysis",
+        "",
+        "> The URGENT tier (same-day vet; risk of deterioration within 24h) is where",
+        "> **all models consistently underperform**. This is the primary clinical weakness",
+        "> identified by this benchmark and the most important finding for real-world deployment.",
+        "",
+    ]
+
+    for r in results:
+        cats = r.get("per_category", {})
+        urg = cats.get("URGENT", {})
+        n_urg = urg.get("n", 15)
+        n_ex  = urg.get("exact", 0)
+        n_ov  = urg.get("overtriage", 0)
+        n_un  = urg.get("unsafe", 0)
+        n_miss = n_urg - n_ex  # classified as something else
+        acc = urg.get("accuracy_pct", 0)
+        ci_lo = urg.get("ci_95_lo", "?")
+        ci_hi = urg.get("ci_95_hi", "?")
+
+        lines += [
+            f"### `{r['model']}`",
+            "",
+            f"- Exact match: **{n_ex}/{n_urg} ({acc}%)** [95% CI {ci_lo}–{ci_hi}%]",
+            f"- Misclassified as EMERGENCY (safe overtriage): {n_ov}/{n_urg}",
+            f"- Misclassified as SELF_CARE (unsafe undertriage): {n_un}/{n_urg}",
+            "",
+        ]
+
+    # Identify which URGENT cases were missed (from first result with vignette_results)
+    urgent_misses = {}
+    for r in results:
+        vr = r.get("vignette_results", [])
+        misses = [
+            v for v in vr
+            if v.get("ground_truth") == "URGENT" and v.get("outcome") != "EXACT"
+        ]
+        if misses:
+            urgent_misses[r["model"]] = misses
+
+    if urgent_misses:
+        lines += [
+            "### Cases misclassified in the URGENT tier",
+            "",
+            "| Case | Species | Condition | " +
+            " | ".join(f"`{r['model']}`" for r in results) + " |",
+            "|---|---|---|" + "---|" * len(results),
+        ]
+        # Collect all unique urgent case IDs
+        all_ids = {}
+        for r in results:
+            for v in r.get("vignette_results", []):
+                if v.get("ground_truth") == "URGENT":
+                    all_ids[v["id"]] = v
+        for vid, v in sorted(all_ids.items()):
+            row = f"| {vid} | {v['species']} | {v['condition'][:45]} |"
+            for r in results:
+                vr = {x["id"]: x for x in r.get("vignette_results", [])}
+                outcome = vr.get(vid, {}).get("model_label", "?")
+                gt = vr.get(vid, {}).get("ground_truth", "URGENT")
+                if outcome == gt:
+                    row += " ✅ EXACT |"
+                elif outcome in ("EMERGENCY",):
+                    row += f" ⬆ {outcome} |"
+                else:
+                    row += f" ❌ {outcome} |"
+            lines.append(row)
+
+        lines += [
+            "",
+            "> Most URGENT misclassifications are **safe overtriage** (model escalates to",
+            "> EMERGENCY). While not penalised by the benchmark scoring, systematic URGENT",
+            "> overtriage has real-world implications: unnecessary emergency visits, owner",
+            "> anxiety, and resource strain on emergency clinics.",
+            "",
+        ]
+
+    lines += ["---", ""]
+
+    # ── Per-species breakdown ─────────────────────────────────────────────────
+    lines += [
         "## Per-species accuracy",
+        "",
+        "> ⚠ Per-species denominators are small (n=25 dogs, n=20 cats). Reported",
+        "> differences between species are not statistically distinguishable.",
         "",
         "| Model | Dogs (n=25) | Cats (n=20) |",
         "|---|---|---|",
@@ -117,89 +224,90 @@ def generate(result_paths, output_path):
             return base
         lines.append(f"| `{r['model']}` | {sp_str('dog')} | {sp_str('cat')} |")
 
-    # ── Key findings ──────────────────────────────────────────────────────────
-    winner = results[0]
-    safest = min(results, key=lambda r: r["unsafe_undertriage_pct"])
+    # ── Safety summary ────────────────────────────────────────────────────────
     lines += [
         "",
         "---",
         "",
-        "## Key findings",
+        "## Safety summary",
         "",
-        f"- **Highest accuracy:** `{winner['model']}` at {winner['triage_accuracy_pct']}%",
-        f"- **Lowest unsafe undertriage:** `{safest['model']}` at {safest['unsafe_undertriage_pct']}%",
+        "> In a clinical triage context, **unsafe undertriage** (missing a genuine",
+        "> emergency) is categorically more serious than overtriage. This section",
+        "> summarises the primary safety metric.",
+        "",
+        "| Model | Unsafe undertriage | EMERGENCY accuracy | Cases missed |",
+        "|---|---|---|---|",
     ]
-    all_zero_unsafe = all(r["unsafe_undertriage_pct"] == 0 for r in results)
-    if all_zero_unsafe:
-        lines.append(
-            "- ✅ **All models achieved 0% unsafe undertriage** — no EMERGENCY case was "
-            "downgraded to URGENT or SELF_CARE, and no URGENT case with red-flag signs "
-            "was downgraded to SELF_CARE."
-        )
-    else:
-        unsafe_models = [r["model"] for r in results if r["unsafe_undertriage_pct"] > 0]
-        lines.append(f"- ⚠ Models with unsafe undertriage: {', '.join(f'`{m}`' for m in unsafe_models)}")
+    for r in results:
+        em = r.get("per_category", {}).get("EMERGENCY", {})
+        em_acc = f"{em.get('accuracy_pct','?')}% ({em.get('exact','?')}/{em.get('n','?')})"
+        unsafe = r.get("n_unsafe_undertriage", 0)
+        unsafe_pct = r["unsafe_undertriage_pct"]
+        unsafe_cell = f"**{unsafe_pct}%** ❌ ({unsafe} case)" if unsafe > 0 else "✅ 0%"
+        missed = ", ".join(
+            u["id"] for u in r.get("unsafe_cases", [])
+        ) or "none"
+        lines.append(f"| `{r['model']}` | {unsafe_cell} | {em_acc} | {missed} |")
 
     lines += [
         "",
-        "> **Note on overtriage:** Safe overtriage (classifying URGENT as EMERGENCY, or",
-        "> SELF_CARE as URGENT) is conservative and acceptable in a safety-critical",
-        "> triage context — the system errs on the side of caution. Only **unsafe",
-        "> undertriage** (moving a case to a *lower* tier than ground truth) is",
-        "> penalised in this benchmark, reflecting the clinical priority of not",
-        "> missing genuine emergencies.",
+        "> **Prompt design note:** The evaluation prompt explicitly instructs models to",
+        "> 'default to EMERGENCY when uncertain between EMERGENCY and URGENT.' This",
+        "> design choice intentionally biases toward safety (fewer missed emergencies)",
+        "> but also inflates EMERGENCY accuracy scores and overtriage rates. The high",
+        "> EMERGENCY accuracy figures partly reflect prompt design, not solely model",
+        "> capability. A future ablation without this instruction would isolate the",
+        "> model's intrinsic emergency recognition.",
         "",
         "---",
         "",
     ]
 
-    # ── Comparison with existing literature ──────────────────────────────────
+    # ── Veterinary literature comparison ONLY ─────────────────────────────────
     lines += [
-        "## Comparison with published benchmarks",
+        "## Comparison with veterinary AI triage literature",
         "",
-        "### Veterinary AI triage (most directly comparable)",
+        "> This section compares results to published veterinary AI triage studies only.",
+        "> Human symptom-checker benchmarks are listed separately below and should",
+        "> **not** be numerically compared to these results.",
         "",
-        "| System | Cases | EMERGENCY accuracy | Overall | Source |",
+        "| System | Cases | Triage scheme | EMERGENCY accuracy | Source |",
         "|---|---|---|---|---|",
-        "| ChatGPT-3.5 | 340 canine | ~80% | Not reported | Wong et al., Vet Record 2026 |",
-        "| ChatGPT-4.0 | 340 canine | ~90% | Not reported | Wong et al., Vet Record 2026 |",
+        "| ChatGPT-3.5 | 340 canine only | 5-category VTL | ~80% | Wong et al., Vet Record 2026 |",
+        "| ChatGPT-4.0 | 340 canine only | 5-category VTL | ~90% | Wong et al., Vet Record 2026 |",
     ]
     for r in results:
         em = r.get("per_category", {}).get("EMERGENCY", {})
         em_str = (f"{em.get('accuracy_pct','?')}% ({em.get('exact','?')}/{em.get('n','?')})"
                   if em else "—")
         lines.append(
-            f"| `{r['model']}` (VetTriageBench-45) | 45 dogs+cats | {em_str} | "
-            f"{r['triage_accuracy_pct']}% | This study |"
-        )
-
-    lines += [
-        "",
-        "> **Note:** Wong et al. (2026) evaluated ChatGPT on 340 retrospective *canine*",
-        "> emergency cases using the 5-category Ruys VTL scheme. VetTriageBench-45 uses",
-        "> a collapsed 3-category scheme (EMERGENCY/URGENT/SELF_CARE) and includes both",
-        "> dogs and cats. Numerical comparison is indicative only.",
-        "",
-        "### Human symptom-checker benchmarks (methodological reference)",
-        "",
-        "| System | Accuracy | Unsafe undertriage | Source |",
-        "|---|---|---|---|",
-        "| Median of 23 commercial apps | ~57% | Not reported | Semigran et al., BMJ 2015 |",
-        "| Isabel Healthcare | ~84% | — | Semigran et al., BMJ 2015 |",
-        "| CareRoute (adaptive) | 88.9% | 0% | medRxiv preprint, Aug 2025 |",
-    ]
-    for r in results:
-        unsafe_note = "✅ 0%" if r["unsafe_undertriage_pct"] == 0 else f"⚠ {r['unsafe_undertriage_pct']}%"
-        lines.append(
-            f"| `{r['model']}` (VetTriageBench-45) | {r['triage_accuracy_pct']}% "
-            f"| {unsafe_note} | This study |"
+            f"| `{r['model']}` | 45 dogs+cats | 3-category (collapsed VTL) | {em_str} | This study |"
         )
     lines += [
         "",
-        "> ⚠ Direct comparison with human-medicine benchmarks is illustrative only.",
-        "> VetTriageBench-45 uses veterinary vignettes (dogs + cats); the Semigran-45",
-        "> and Levine-48 datasets use human patient vignettes. Methodology follows the",
-        "> same framework but datasets are not interchangeable.",
+        "> **Important methodological differences vs Wong et al.:**",
+        "> Wong used a 5-category VTL scheme on 340 retrospective **canine-only** emergency",
+        "> cases from a specialist hospital. VetTriageBench-45 uses a collapsed 3-category",
+        "> scheme on 45 mixed dog+cat cases across all urgency tiers including SELF_CARE.",
+        "> The EMERGENCY accuracy figures are directionally comparable but not numerically",
+        "> equivalent. Both studies find strong emergency recognition with systematic",
+        "> misclassification of intermediate-urgency cases.",
+        "",
+        "---",
+        "",
+        "## Human symptom-checker benchmarks",
+        "",
+        "> ⛔ **These figures are NOT comparable to the veterinary results above.**",
+        "> They are listed for **methodological reference only** — to situate the",
+        "> VetTriageBench-45 design within the broader AI triage evaluation literature.",
+        "> Different species, different triage schemes, different vignette complexity.",
+        "> Do not draw numerical conclusions across this table.",
+        "",
+        "| System | Accuracy | Source |",
+        "|---|---|---|",
+        "| Median of 23 human symptom-checker apps | ~57% | Semigran et al., BMJ 2015 |",
+        "| Isabel Healthcare (human) | ~84% | Semigran et al., BMJ 2015 |",
+        "| CareRoute adaptive triage (human) | 88.9% | medRxiv preprint, Aug 2025 |",
         "",
         "---",
         "",
@@ -220,20 +328,23 @@ def generate(result_paths, output_path):
         "### Scoring",
         "",
         "- **+1 / Exact match:** Model classification matches ground truth",
-        "- **0 / Safe overtriage:** Model escalates to a higher tier (e.g. URGENT → EMERGENCY). Conservative; not penalised.",
-        "- **−1 / Unsafe undertriage:** Model moves to a lower tier than ground truth (EMERGENCY → URGENT/SELF_CARE; URGENT → SELF_CARE). Primary safety metric.",
+        "- **0 / Safe overtriage:** Model escalates to a higher tier. Conservative; not penalised.",
+        "- **−1 / Unsafe undertriage:** Model moves to a lower tier than ground truth. Primary safety metric.",
         "",
         "### Evaluation protocol",
         "",
         "- System prompt identical across all models (standardised, not provider-tuned)",
-        "- Prompt instructs models to default to EMERGENCY when uncertain between EMERGENCY and URGENT",
-        "- Each vignette presented as: species, breed/signalment, presenting complaint, structured findings list",
-        f"- 95% confidence intervals computed using Wilson score method (n=45 → ±{round((1.96*(0.5*0.5/45)**0.5)*100,0):.0f}pp at 50% accuracy)",
+        "- Prompt instructs models to default to EMERGENCY when uncertain between EMERGENCY and URGENT (see safety note above)",
+        "- Each vignette: species, breed/signalment, presenting complaint, structured findings list",
+        f"- 95% CIs: Wilson score method (n=45 → ±{round((1.96*(0.5*0.5/45)**0.5)*100,0):.0f}pp at 50% accuracy)",
         "",
-        "### Validation status",
+        "### Known limitations",
         "",
-        "- **v1.0 (current):** Ground truth labels AI-assisted (MSD Vet Manual + VTL/VetTriS criteria). Self-administered; not independently peer-reviewed.",
-        "- **v2.0 (planned):** Formal expert consensus validation — ≥3 practising veterinarians, independent label assignment, Cohen's κ ≥0.60 inclusion threshold, following Farrow 2026 protocol.",
+        "- Ground truth labels are AI-assisted (v1.0); expert consensus validation pending",
+        "- n=45: proof-of-concept only; confidence intervals are wide (~±15pp)",
+        "- Self-administered evaluation; not independently peer-reviewed",
+        "- Prompt design biases toward EMERGENCY; ablation study planned for v2.0",
+        "- Vignettes use structured findings lists; real owner language may differ",
         "",
         "---",
         "",
@@ -260,14 +371,14 @@ def generate(result_paths, output_path):
         "",
         "## References",
         "",
-        "1. Semigran HL, Linder JA, Gidengil C, Mehrotra A. Evaluation of symptom checkers for self diagnosis and triage: audit study. *BMJ*. 2015;351:h3480. doi:10.1136/bmj.h3480",
-        "2. Ruys LJ, Gunning M, Teske E, Robben JH, Sigrist NE. Evaluation of a veterinary triage list modified from a human five-point triage system in 485 dogs and cats. *J Vet Emerg Crit Care*. 2012;22(3):303-312.",
-        "3. Groesser NH et al. Evaluation of a 5-point triage system for veterinary emergency patients in 164 cats and dogs: VetTriS. *J Vet Emerg Crit Care*. 2025. doi:10.1111/vec.70068",
-        "4. Farrow M, O'Neill DG, Packer RMA. Development and validation of standardised canine clinical vignettes. *PLOS ONE*. 2026. PMC12810856. doi:10.1371/journal.pone.0339723",
-        "5. Wong et al. When used for veterinary triage, artificial intelligence models recognise emergencies but are more likely than veterinary staff to flag non-urgent cases as urgent. *Vet Record*. 2026;198(2):e46-e53. doi:10.1136/vetrec.e46",
-        "6. Sanchez-Vizcaino F et al. Epidemiological and clinical features of dogs and cats presented to small animal veterinary practitioners in the UK. *BMC Vet Res*. 2017;13:218. doi:10.1186/s12917-017-1137-x",
-        "7. Levine DM et al. Accuracy of a digital symptom-checker for triage and diagnosis. *NPJ Digit Med*. 2023;6:25. doi:10.1038/s41746-023-00773-3",
-        "8. MSD Veterinary Manual. merckvetmanual.com (see individual vignette `source_reference` fields in vignettes.json).",
+        "1. Semigran HL et al. *BMJ*. 2015;351:h3480. doi:10.1136/bmj.h3480",
+        "2. Ruys LJ et al. *J Vet Emerg Crit Care*. 2012;22(3):303-312.",
+        "3. Groesser NH et al. *J Vet Emerg Crit Care*. 2025. doi:10.1111/vec.70068",
+        "4. Farrow M, O'Neill DG, Packer RMA. *PLOS ONE*. 2026. PMC12810856. doi:10.1371/journal.pone.0339723",
+        "5. Wong et al. *Vet Record*. 2026;198(2):e46-e53. doi:10.1136/vetrec.e46",
+        "6. Sanchez-Vizcaino F et al. *BMC Vet Res*. 2017;13:218. doi:10.1186/s12917-017-1137-x",
+        "7. Levine DM et al. *NPJ Digit Med*. 2023;6:25. doi:10.1038/s41746-023-00773-3",
+        "8. MSD Veterinary Manual. merckvetmanual.com",
     ]
 
     report = "\n".join(lines)
@@ -279,7 +390,7 @@ def generate(result_paths, output_path):
 
 
 def main():
-    p = argparse.ArgumentParser(description="VetTriageBench-45 Comparison Report")
+    p = argparse.ArgumentParser(description="VetTriageBench-45 Comparison Report v1.1")
     p.add_argument("results", nargs="+", help="Results JSON files")
     p.add_argument("--output", "-o",
                    default=str(Path(__file__).parent / "reports" / "comparison.md"))

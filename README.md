@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21127218.svg)](https://doi.org/10.5281/zenodo.21127218)
+
 # VetTriageBench-45
 
 **A veterinary triage accuracy benchmark for AI symptom assessment systems**  

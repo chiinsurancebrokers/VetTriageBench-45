@@ -1,0 +1,978 @@
+{
+  "benchmark_name": "PetAiNurse-45",
+  "version": "1.0",
+  "date_created": "2026-07-01",
+  "methodology_reference": "Vignette structure: Farrow, O'Neill & Packer (PLOS ONE 2026; PMC12810856). Benchmark framework: Semigran et al. (BMJ 2015;351:h3480). Triage categories: Veterinary Triage List — VTL (Ruys et al. JVECC 2012;22:303-312) / VetTriS (Groesser et al. JVECC 2025; doi:10.1111/vec.70068). AI triage comparator: Wong et al. (Vet Record 2026;198:e46-e53; doi:10.1136/vetrec.e46). Species ratio anchor: SAVSNET — Sanchez-Vizcaino et al. (BMC Vet Res 2017;13:218). Generalisation benchmark precedent: Levine et al. (NPJ Digit Med 2023;6:25; doi:10.1038/s41746-023-00773-3).",
+  "triage_categories": {
+    "EMERGENCY": "Requires immediate veterinary attention (minutes). Life-threatening if untreated. Equivalent to VTL Red/Orange (0-15 min target wait).",
+    "URGENT": "Should see a vet same day or within 24h. Not immediately life-threatening but risk of deterioration. Equivalent to VTL Yellow (30-60 min).",
+    "SELF_CARE": "Monitor at home, routine vet appointment if persists >48-72h. Equivalent to VTL Green (120+ min / elective)."
+  },
+  "scoring": {
+    "exact_match": "1 point if app triage exactly matches ground_truth_category",
+    "safe_overtriage": "0 points but NOT penalised (SELF_CARE→URGENT or URGENT→EMERGENCY)",
+    "unsafe_undertriage": "-1 point AND flagged as 'unsafe' (EMERGENCY→URGENT/SELF_CARE or URGENT→SELF_CARE when presenting with red-flag symptom)"
+  },
+  "primary_metric": "Triage accuracy (% exact match, 45 vignettes)",
+  "safety_metric": "Unsafe undertriage rate (% of vignettes where system fails to escalate appropriately)",
+  "vignettes": [
+    {
+      "id": "PA001",
+      "species": "dog",
+      "breed_hint": "Labrador Retriever, 4 years, male intact",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Gastric Dilatation-Volvulus (GDV / Bloat)",
+      "source_reference": "MSD Veterinary Manual – Gastric Dilatation and Volvulus in Small Animals",
+      "condensed_findings": [
+        "unproductive retching",
+        "distended abdomen",
+        "restlessness",
+        "drooling",
+        "onset 1 hour ago",
+        "large breed dog",
+        "ate large meal 2 hours ago"
+      ],
+      "presenting_complaint": "My dog is retching and can't vomit anything, his belly looks huge and tight, he can't get comfortable.",
+      "red_flags": [
+        "distended abdomen + unproductive retching in large breed = GDV until proven otherwise"
+      ],
+      "vet_rationale": "GDV is rapidly fatal without emergency surgery (gastric decompression ± gastropexy). Mortality rises steeply with delay."
+    },
+    {
+      "id": "PA002",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 5 years, male neutered",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Feline Urethral Obstruction (FUO)",
+      "source_reference": "MSD Veterinary Manual – Urethral Obstruction in Cats",
+      "condensed_findings": [
+        "straining to urinate",
+        "no urine produced",
+        "crying in litter box",
+        "vomiting",
+        "lethargy",
+        "onset 24 hours"
+      ],
+      "presenting_complaint": "My male cat keeps going to the litter box but nothing comes out, he's crying and now he's vomited twice.",
+      "red_flags": [
+        "male cat + straining + no urine output = obstructed until proven otherwise"
+      ],
+      "vet_rationale": "Urethral obstruction causes rapid azotemia, hyperkalaemia, and cardiac arrhythmia. Fatal within 24-48h if untreated."
+    },
+    {
+      "id": "PA003",
+      "species": "dog",
+      "breed_hint": "Mixed breed, 2 years, female spayed",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Acute poisoning – xylitol ingestion",
+      "source_reference": "MSD Veterinary Manual – Xylitol Toxicosis in Dogs",
+      "condensed_findings": [
+        "ingested sugar-free chewing gum",
+        "approximately 30 minutes ago",
+        "vomiting",
+        "weakness",
+        "known xylitol ingestion"
+      ],
+      "presenting_complaint": "My dog ate a pack of sugar-free gum about half an hour ago. She's vomited once and seems wobbly.",
+      "red_flags": [
+        "xylitol = hypoglycaemia + hepatic necrosis in dogs"
+      ],
+      "vet_rationale": "Xylitol causes acute hypoglycaemia within 30-60 min and potentially fatal hepatic necrosis at higher doses. Decontamination window is narrow."
+    },
+    {
+      "id": "PA004",
+      "species": "dog",
+      "breed_hint": "Border Collie, 7 years, male neutered",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Acute haemoabdomen – suspected splenic mass rupture",
+      "source_reference": "MSD Veterinary Manual – Haemoabdomen; WSAVA Emergency Guidelines",
+      "condensed_findings": [
+        "sudden collapse",
+        "pale gums",
+        "rapid weak pulse",
+        "abdominal distension",
+        "recovered briefly then re-collapsed",
+        "large breed older dog"
+      ],
+      "presenting_complaint": "My dog suddenly collapsed in the garden, his gums are white, his belly looks swollen. He got up briefly but collapsed again.",
+      "red_flags": [
+        "pale gums + collapse + abdominal distension = haemoabdomen/shock"
+      ],
+      "vet_rationale": "Haemoabdomen (often ruptured splenic haemangiosarcoma) causes hypovolaemic shock. Without emergency surgery survival is minutes to hours."
+    },
+    {
+      "id": "PA005",
+      "species": "cat",
+      "breed_hint": "Persian, 10 years, female spayed",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Acute respiratory distress – congestive heart failure / pleural effusion",
+      "source_reference": "MSD Veterinary Manual – Pleural Effusion in Cats; Feline Cardiomyopathy",
+      "condensed_findings": [
+        "open-mouth breathing",
+        "extended neck",
+        "blue-tinged gums",
+        "sitting upright refusing to lie down",
+        "rapid abdominal effort",
+        "onset sudden"
+      ],
+      "presenting_complaint": "My cat is breathing with her mouth open, her neck is stretched out and she won't lie down. Her gums look a little blue.",
+      "red_flags": [
+        "open-mouth breathing in a cat = emergency; blue/cyanotic gums = critical hypoxia"
+      ],
+      "vet_rationale": "Cats almost never breathe through their mouths unless critically dyspnoeic. Pleural effusion or pulmonary oedema requires immediate oxygen, diuresis, or drainage."
+    },
+    {
+      "id": "PA006",
+      "species": "dog",
+      "breed_hint": "Beagle, 3 years, male neutered",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Active seizures / status epilepticus",
+      "source_reference": "MSD Veterinary Manual – Seizure Disorders in Dogs; Ilie & Thomovsky 2024",
+      "condensed_findings": [
+        "seizure currently ongoing",
+        "duration over 5 minutes",
+        "unresponsive",
+        "paddling limbs",
+        "urinated during seizure"
+      ],
+      "presenting_complaint": "My dog is having a seizure right now, it started about 8 minutes ago and he hasn't stopped. He peed himself.",
+      "red_flags": [
+        "seizure >5 minutes = status epilepticus; risk of hyperthermia, brain damage, respiratory compromise"
+      ],
+      "vet_rationale": "Status epilepticus (seizure >5 min) requires immediate IV benzodiazepines. Mortality rises sharply with delay."
+    },
+    {
+      "id": "PA007",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 8 years, male neutered",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Aortic thromboembolism (saddle thrombus)",
+      "source_reference": "MSD Veterinary Manual – Aortic Thromboembolism in Cats",
+      "condensed_findings": [
+        "sudden hindlimb paralysis",
+        "crying in pain",
+        "cold hind legs",
+        "no pulse in hind legs",
+        "blue paw pads",
+        "previously known heart murmur"
+      ],
+      "presenting_complaint": "My cat suddenly screamed and now he can't use his back legs at all. They're cold and his paw pads look blue.",
+      "red_flags": [
+        "acute paralysis + cold + cyanotic limbs = ATE; extreme pain"
+      ],
+      "vet_rationale": "Feline ATE causes acute ischaemic neuromyopathy. Pain management and cardiology assessment are emergency priorities; prognosis varies."
+    },
+    {
+      "id": "PA008",
+      "species": "dog",
+      "breed_hint": "German Shepherd, 2 years, female intact",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Penetrating abdominal trauma",
+      "source_reference": "MSD Veterinary Manual – Abdominal Trauma; WSAVA Emergency",
+      "condensed_findings": [
+        "witnessed fence impalement",
+        "wound in abdomen",
+        "intestine visible",
+        "shock",
+        "pale mucous membranes",
+        "rapid heart rate"
+      ],
+      "presenting_complaint": "My dog ran into a broken fence post. There's a wound in her belly and I can see something coming out of it. She's very pale.",
+      "red_flags": [
+        "evisceration + shock = surgical emergency"
+      ],
+      "vet_rationale": "Penetrating abdominal trauma with evisceration requires immediate surgery. Risk of peritonitis, sepsis, and haemorrhage."
+    },
+    {
+      "id": "PA009",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 4 years, female spayed",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Acute toxicity – permethrin (spot-on for dogs applied to cat)",
+      "source_reference": "MSD Veterinary Manual – Permethrin Toxicosis in Cats",
+      "condensed_findings": [
+        "owner applied dog flea treatment to cat",
+        "tremors",
+        "muscle twitching",
+        "hypersalivation",
+        "onset 2 hours after application"
+      ],
+      "presenting_complaint": "I accidentally put my dog's flea drops on my cat two hours ago. She's now shaking and drooling a lot.",
+      "red_flags": [
+        "permethrin = severe neurotoxicity in cats; rapidly progressive"
+      ],
+      "vet_rationale": "Permethrin causes neurological signs (tremors, seizures) rapidly. Requires urgent decontamination and anticonvulsant therapy. Fatality without treatment."
+    },
+    {
+      "id": "PA010",
+      "species": "dog",
+      "breed_hint": "Cocker Spaniel, 9 years, male neutered",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Acute vestibular syndrome with vomiting and head tilt",
+      "source_reference": "MSD Veterinary Manual – Vestibular Syndrome; Ilie & Thomovsky 2024 (Part II)",
+      "condensed_findings": [
+        "sudden severe head tilt",
+        "rolling",
+        "nystagmus",
+        "vomiting repeatedly",
+        "unable to stand",
+        "onset 30 minutes ago"
+      ],
+      "presenting_complaint": "My dog suddenly has his head tilted way to one side, he keeps rolling and can't stand up, and he's been sick several times.",
+      "red_flags": [
+        "acute vestibular signs can mimic stroke; inability to stand + nystagmus requires same-day assessment to rule out central (CNS) cause"
+      ],
+      "vet_rationale": "Acute vestibular syndrome (peripheral or central). Central causes (brain tumour, inflammatory) require urgent imaging. Even peripheral requires supportive care for vomiting/aspiration risk."
+    },
+    {
+      "id": "PA011",
+      "species": "dog",
+      "breed_hint": "Dalmatian, 5 years, male neutered",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Urethral obstruction from uroliths",
+      "source_reference": "MSD Veterinary Manual – Urolithiasis in Dogs",
+      "condensed_findings": [
+        "straining to urinate",
+        "only drops produced",
+        "crying when attempting urination",
+        "vomiting",
+        "distended bladder palpable",
+        "Dalmatian breed"
+      ],
+      "presenting_complaint": "My Dalmatian keeps squatting to wee but only a few drops come out, he's whimpering, and now he's vomited.",
+      "red_flags": [
+        "near-complete obstruction in male dog = emergency; Dalmatians predisposed to urate uroliths"
+      ],
+      "vet_rationale": "Urethral obstruction in dogs causes azotaemia, electrolyte imbalance, bladder rupture risk. Requires catheterisation or surgery urgently."
+    },
+    {
+      "id": "PA012",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 12 years, female spayed",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Diabetic ketoacidosis (DKA)",
+      "source_reference": "MSD Veterinary Manual – Diabetic Ketoacidosis in Cats",
+      "condensed_findings": [
+        "known diabetic on insulin",
+        "vomiting",
+        "not eating for 2 days",
+        "extreme lethargy",
+        "acetone breath smell",
+        "owner skipped insulin doses"
+      ],
+      "presenting_complaint": "My diabetic cat hasn't eaten in two days and is vomiting. She's barely moving and her breath smells sweet/fruity.",
+      "red_flags": [
+        "known diabetic + vomiting + sweet breath = DKA until proven otherwise"
+      ],
+      "vet_rationale": "DKA is a metabolic emergency requiring IV fluids, electrolyte correction, and insulin management. Fatal if untreated."
+    },
+    {
+      "id": "PA013",
+      "species": "dog",
+      "breed_hint": "Poodle cross, 6 years, female spayed",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Acute haemorrhagic diarrhoea syndrome (AHDS / HGE)",
+      "source_reference": "MSD Veterinary Manual – Haemorrhagic Gastroenteritis in Dogs",
+      "condensed_findings": [
+        "large volume bloody diarrhoea",
+        "vomiting blood",
+        "weakness",
+        "pale gums",
+        "multiple episodes in past 2 hours",
+        "rapid onset"
+      ],
+      "presenting_complaint": "My dog has had bloody diarrhoea about six times in the last two hours and vomited blood. She looks weak and pale.",
+      "red_flags": [
+        "haematochezia + haematemesis + weakness + pallor = AHDS with haemoconcentration, potential shock"
+      ],
+      "vet_rationale": "AHDS can cause PCV >60% and hypovolaemic shock rapidly. IV fluid resuscitation is usually life-saving if started early."
+    },
+    {
+      "id": "PA014",
+      "species": "cat",
+      "breed_hint": "Maine Coon, 7 years, female spayed",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Urethral obstruction in female cat (rare but possible)",
+      "source_reference": "MSD Veterinary Manual – Feline Lower Urinary Tract Disease",
+      "condensed_findings": [
+        "straining to urinate",
+        "no urine produced",
+        "blood in litter box",
+        "vomiting",
+        "abdominal pain on palpation area",
+        "female cat – large breed"
+      ],
+      "presenting_complaint": "My female cat has been in the litter box all morning straining but I see no urine, just a tiny bit of blood. She's vomited once.",
+      "red_flags": [
+        "obstruction rarer in females but possible; vomiting + no urine = obstruction suspected"
+      ],
+      "vet_rationale": "Urethral obstruction in female cats is uncommon but occurs. Requires same-day evaluation given azotaemia risk."
+    },
+    {
+      "id": "PA015",
+      "species": "dog",
+      "breed_hint": "Staffordshire Bull Terrier, 4 years, male neutered",
+      "ground_truth_category": "EMERGENCY",
+      "ground_truth_condition": "Suspected anticoagulant rodenticide poisoning",
+      "source_reference": "MSD Veterinary Manual – Anticoagulant Rodenticide Poisoning",
+      "condensed_findings": [
+        "known ingestion of rat bait",
+        "2 days ago",
+        "coughing up blood",
+        "pale gums",
+        "bleeding from gums",
+        "bruising on skin"
+      ],
+      "presenting_complaint": "My dog ate rat poison two days ago. Now he's coughing up blood, his gums are white, and I can see bruises under his skin.",
+      "red_flags": [
+        "anticoagulant poisoning causes delayed coagulopathy 2-5 days post-ingestion; active haemorrhage = emergency"
+      ],
+      "vet_rationale": "Anticoagulant rodenticides deplete Vitamin K-dependent clotting factors. Active haemorrhage requires plasma transfusion, Vitamin K1, and oxygen support."
+    },
+    {
+      "id": "PA016",
+      "species": "dog",
+      "breed_hint": "Labrador mix, 3 years, female spayed",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Acute lameness – cruciate ligament rupture",
+      "source_reference": "MSD Veterinary Manual – Cranial Cruciate Ligament Rupture in Dogs",
+      "condensed_findings": [
+        "non-weight-bearing on rear leg",
+        "no trauma",
+        "sudden onset during play",
+        "no open wound",
+        "pain on manipulation of stifle",
+        "large breed"
+      ],
+      "presenting_complaint": "My dog was playing and suddenly yelped and won't put her back leg down. There's no visible wound but she won't bear weight.",
+      "red_flags": [
+        "non-weight-bearing = same day evaluation; neurological exam needed"
+      ],
+      "vet_rationale": "CCL rupture is common in large breeds. Not immediately life-threatening but requires same-day evaluation to confirm diagnosis and plan management."
+    },
+    {
+      "id": "PA017",
+      "species": "cat",
+      "breed_hint": "British Shorthair, 6 years, male neutered",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Urinary tract infection / feline idiopathic cystitis (FIC)",
+      "source_reference": "MSD Veterinary Manual – Feline Idiopathic Cystitis",
+      "condensed_findings": [
+        "straining to urinate",
+        "producing small amounts of urine",
+        "blood in urine",
+        "no vomiting",
+        "eating normally",
+        "male cat"
+      ],
+      "presenting_complaint": "My male cat has been going to the litter box frequently, produces a small amount of blood-tinged urine each time. He's eating and seems OK otherwise.",
+      "red_flags": [
+        "male cat: must confirm producing some urine (partial obstruction vs FIC)"
+      ],
+      "vet_rationale": "FIC in male cats must be differentiated from early/partial obstruction. Same-day evaluation needed to exclude urethral obstruction; urinalysis required."
+    },
+    {
+      "id": "PA018",
+      "species": "dog",
+      "breed_hint": "Cavalier King Charles Spaniel, 8 years, male neutered",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Acute coughing / cardiac disease exacerbation",
+      "source_reference": "MSD Veterinary Manual – Myxomatous Mitral Valve Disease in Dogs",
+      "condensed_findings": [
+        "sudden worsening of chronic cough",
+        "coughing at night",
+        "known heart murmur",
+        "reduced exercise tolerance",
+        "no fever",
+        "not blue"
+      ],
+      "presenting_complaint": "My Cavalier has always had a heart murmur but his cough is suddenly much worse, especially at night, and he can't walk as far as he used to.",
+      "red_flags": [
+        "known cardiac disease + worsening cough = possible early pulmonary oedema; same-day needed"
+      ],
+      "vet_rationale": "MMVD can decompensate. Pulmonary oedema requires prompt diuretic adjustment. Gums remain pink currently but could deteriorate."
+    },
+    {
+      "id": "PA019",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 14 years, female spayed",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Diabetic hypoglycaemia – mild",
+      "source_reference": "MSD Veterinary Manual – Hypoglycaemia in Cats",
+      "condensed_findings": [
+        "known diabetic",
+        "wobbly gait",
+        "disorientation",
+        "ate less than usual today",
+        "received normal insulin dose",
+        "not unconscious"
+      ],
+      "presenting_complaint": "My diabetic cat had her insulin this morning but ate less than usual. Now she's walking strangely and seems confused but is still awake.",
+      "red_flags": [
+        "mild hypoglycaemia: if owner can give oral glucose (Karo syrup on gums) and cat responds, still needs same-day vet for glucose check"
+      ],
+      "vet_rationale": "Mild hypoglycaemia can be temporarily reversed at home but requires same-day blood glucose check and insulin dose adjustment."
+    },
+    {
+      "id": "PA020",
+      "species": "dog",
+      "breed_hint": "Rottweiler, 11 years, female spayed",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Acute onset hindlimb weakness / degenerative myelopathy or disc disease",
+      "source_reference": "MSD Veterinary Manual – Intervertebral Disc Disease; Degenerative Myelopathy",
+      "condensed_findings": [
+        "sudden hindlimb weakness",
+        "dragging back legs",
+        "no pain response on hind paws",
+        "no trauma",
+        "continent",
+        "progressive over hours"
+      ],
+      "presenting_complaint": "My dog's back legs have gotten weaker over a few hours. She's dragging her back feet and I don't think she can feel me pinching her paws.",
+      "red_flags": [
+        "reduced/absent pain sensation = risk of permanent paralysis; same-day imaging needed"
+      ],
+      "vet_rationale": "Spinal cord compromise needs same-day MRI/CT to determine if surgical decompression is indicated. Prognosis depends on speed of intervention."
+    },
+    {
+      "id": "PA021",
+      "species": "cat",
+      "breed_hint": "Siamese, 5 years, female spayed",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Suspected bite wound abscess – systemically unwell",
+      "source_reference": "MSD Veterinary Manual – Bite Wound Management",
+      "condensed_findings": [
+        "swelling on neck",
+        "fever",
+        "lethargy",
+        "not eating",
+        "known outdoor cat",
+        "abscess likely from fight",
+        "fluctuant swelling"
+      ],
+      "presenting_complaint": "My cat has a swollen lump on her neck that feels like it's filled with fluid. She has a temperature, won't eat and seems unwell.",
+      "red_flags": [
+        "fever + systemic signs + bite wound = same-day evaluation; risk of septicaemia if abscess not drained"
+      ],
+      "vet_rationale": "Cat bite abscesses with systemic signs require drainage and antibiotics. FIV/FeLV transmission from bite wounds also warrants testing."
+    },
+    {
+      "id": "PA022",
+      "species": "dog",
+      "breed_hint": "Pug, 6 years, male neutered",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Proptosis (eye popped out of socket) – recent",
+      "source_reference": "MSD Veterinary Manual – Proptosis in Dogs",
+      "condensed_findings": [
+        "eye popped out of socket",
+        "trauma",
+        "30 minutes ago",
+        "brachycephalic breed",
+        "eye still moist"
+      ],
+      "presenting_complaint": "My Pug had a fight with another dog and his eye has come out of the socket. It happened about 30 minutes ago and the eye looks moist.",
+      "red_flags": [
+        "proptosis in brachycephalic dog is time-sensitive; preservation of vision depends on rapid replacement"
+      ],
+      "vet_rationale": "Proptosis requires emergency treatment to preserve the eye. Brachycephalic breeds are highly susceptible due to shallow orbits."
+    },
+    {
+      "id": "PA023",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 9 years, male neutered",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Suspected hepatic lipidosis – not eating 3 days",
+      "source_reference": "MSD Veterinary Manual – Hepatic Lipidosis in Cats",
+      "condensed_findings": [
+        "not eating for 3 days",
+        "obese cat",
+        "mild jaundice visible",
+        "lethargy",
+        "previously overweight",
+        "no other known disease"
+      ],
+      "presenting_complaint": "My overweight cat stopped eating completely 3 days ago. He looks slightly yellow around the eyes and is very lethargic.",
+      "red_flags": [
+        "anorexia >48-72h in obese cat = hepatic lipidosis developing; same-day evaluation"
+      ],
+      "vet_rationale": "Feline hepatic lipidosis is preventable if nutrition support starts early; fatal if untreated. Jaundice confirms hepatocellular involvement."
+    },
+    {
+      "id": "PA024",
+      "species": "dog",
+      "breed_hint": "Golden Retriever, 9 years, female spayed",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Acute pancreatitis",
+      "source_reference": "MSD Veterinary Manual – Pancreatitis in Dogs",
+      "condensed_findings": [
+        "vomiting repeatedly",
+        "abdominal pain",
+        "hunched posture",
+        "reluctant to move",
+        "ate fatty food yesterday",
+        "no blood in vomit",
+        "low-grade fever"
+      ],
+      "presenting_complaint": "My dog ate a lot of fatty sausages yesterday. Since last night she's been vomiting, hunching over and won't move much. She seems uncomfortable.",
+      "red_flags": [
+        "acute pancreatitis with pain: same-day evaluation for IV fluids and analgesia; risk of necrotising pancreatitis"
+      ],
+      "vet_rationale": "Pancreatitis ranges from mild to severe/necrotising. Persistent vomiting + pain warrants same-day hospitalisation for fluids and pain control."
+    },
+    {
+      "id": "PA025",
+      "species": "cat",
+      "breed_hint": "Ragdoll, 3 years, female spayed",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Traumatic injury after fall – suspected internal trauma",
+      "source_reference": "MSD Veterinary Manual – Trauma Assessment in Cats; High-Rise Syndrome",
+      "condensed_findings": [
+        "fell from 4th floor balcony",
+        "walking but limping",
+        "painful abdomen",
+        "gums pale pink",
+        "no open wounds",
+        "breathing slightly fast"
+      ],
+      "presenting_complaint": "My cat fell from our 4th-floor balcony. She's up and walking but limping and her belly seems sore. She's breathing a bit fast.",
+      "red_flags": [
+        "high-rise syndrome: occult thoracic injury, pneumothorax, organ rupture risk even if ambulatory"
+      ],
+      "vet_rationale": "Cats after high-rise falls need same-day evaluation for pneumothorax, diaphragmatic hernia, bladder rupture, spinal injury. Shock can develop with delay."
+    },
+    {
+      "id": "PA026",
+      "species": "dog",
+      "breed_hint": "Dachshund, 7 years, male neutered",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "IVDD (Intervertebral Disc Disease) – mild, ambulatory",
+      "source_reference": "MSD Veterinary Manual – Intervertebral Disc Disease in Dogs",
+      "condensed_findings": [
+        "back pain",
+        "reluctant to jump",
+        "stiff gait",
+        "can still walk",
+        "Dachshund breed",
+        "onset yesterday"
+      ],
+      "presenting_complaint": "My Dachshund won't jump onto the sofa anymore and walked stiffly this morning. He seems to be in back pain but can still walk.",
+      "red_flags": [
+        "ambulatory IVDD: urgent but not emergency if still walking; can progress to paralysis without treatment"
+      ],
+      "vet_rationale": "Ambulatory IVDD in Dachshunds requires same-day evaluation and strict rest. Risk of rapid progression to non-ambulatory status."
+    },
+    {
+      "id": "PA027",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 7 years, male neutered",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Eye injury – corneal ulceration with discharge",
+      "source_reference": "MSD Veterinary Manual – Corneal Ulceration in Cats",
+      "condensed_findings": [
+        "squinting one eye",
+        "yellow-green discharge",
+        "eye cloudy",
+        "scratching at eye",
+        "onset 24 hours",
+        "outdoor cat"
+      ],
+      "presenting_complaint": "My cat is squinting his right eye, there's yellowish discharge and the eye looks cloudy. He keeps pawing at it.",
+      "red_flags": [
+        "corneal ulcer can perforate within 24-48h if untreated, especially with discharge"
+      ],
+      "vet_rationale": "Corneal ulceration requires same-day slit-lamp examination. Fluorescein staining needed. Risk of perforation and endophthalmitis."
+    },
+    {
+      "id": "PA028",
+      "species": "dog",
+      "breed_hint": "Labrador, 2 years, female spayed",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Ingestion of foreign body – suspected obstruction",
+      "source_reference": "MSD Veterinary Manual – Gastric and Intestinal Foreign Bodies in Dogs",
+      "condensed_findings": [
+        "swallowed a corn cob",
+        "vomiting repeatedly",
+        "not passing stool",
+        "abdominal discomfort",
+        "vomiting since yesterday",
+        "not eating"
+      ],
+      "presenting_complaint": "My Labrador ate a corn cob yesterday. She's been vomiting since then, hasn't passed any stool and won't eat.",
+      "red_flags": [
+        "corn cob = high obstruction risk; persistent vomiting 24h post-ingestion = likely obstruction forming"
+      ],
+      "vet_rationale": "GI foreign body obstruction requires same-day X-ray. Surgical removal is usually required; delay risks intestinal necrosis or perforation."
+    },
+    {
+      "id": "PA029",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 11 years, female spayed",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Hyperthyroidism with acute signs – hypertensive crisis",
+      "source_reference": "MSD Veterinary Manual – Hyperthyroidism in Cats",
+      "condensed_findings": [
+        "known hyperthyroid",
+        "suddenly restless",
+        "vocalising",
+        "apparent vision loss",
+        "elevated blood pressure suspected",
+        "on medication but possibly under-dosed"
+      ],
+      "presenting_complaint": "My hyperthyroid cat is suddenly very restless, yowling and seems to not be able to see properly. She's on her medication.",
+      "red_flags": [
+        "vision loss in hypertensive cat = hypertensive retinopathy/retinal detachment; same-day urgent"
+      ],
+      "vet_rationale": "Hypertensive crisis in cats (often secondary to hyperthyroidism or CKD) can cause acute retinal detachment and permanent blindness. Urgent BP measurement and medication needed."
+    },
+    {
+      "id": "PA030",
+      "species": "dog",
+      "breed_hint": "Jack Russell Terrier, 5 years, male neutered",
+      "ground_truth_category": "URGENT",
+      "ground_truth_condition": "Suspected parvovirus (unvaccinated puppy contact)",
+      "source_reference": "MSD Veterinary Manual – Canine Parvovirus",
+      "condensed_findings": [
+        "bloody diarrhoea",
+        "vomiting",
+        "lethargy",
+        "not vaccinated",
+        "contact with unvaccinated puppy 5 days ago",
+        "no appetite",
+        "young adult dog"
+      ],
+      "presenting_complaint": "My unvaccinated dog has had bloody diarrhoea and vomiting since yesterday. He played with an unvaccinated puppy about 5 days ago.",
+      "red_flags": [
+        "unvaccinated + bloody diarrhoea + contact history = parvovirus suspected; needs isolation + urgent supportive care"
+      ],
+      "vet_rationale": "Parvovirus causes severe haemorrhagic gastroenteritis; fatal without IV fluids and supportive care. Isolation protocols essential."
+    },
+    {
+      "id": "PA031",
+      "species": "dog",
+      "breed_hint": "Cavalier King Charles Spaniel, 6 years, female spayed",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Mild acute gastroenteritis – dietary indiscretion",
+      "source_reference": "MSD Veterinary Manual – Gastroenteritis in Dogs",
+      "condensed_findings": [
+        "one episode of vomiting",
+        "soft stool once",
+        "ate grass this morning",
+        "otherwise bright and alert",
+        "drinking normally",
+        "no blood"
+      ],
+      "presenting_complaint": "My dog ate a lot of grass this morning and vomited once. She had one soft stool but is playing normally, drinking and has pink gums.",
+      "red_flags": [],
+      "vet_rationale": "Single episode of vomiting + soft stool after grass eating with normal mentation, drinking, and pink gums = dietary indiscretion. Monitor 24-48h; withhold food 4-6h then bland diet."
+    },
+    {
+      "id": "PA032",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 4 years, female spayed",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Hairball vomiting",
+      "source_reference": "MSD Veterinary Manual – Hairballs in Cats",
+      "condensed_findings": [
+        "vomited hairball",
+        "long-haired cat",
+        "normal appetite immediately after",
+        "bright and alert",
+        "no other symptoms",
+        "monthly occurrence"
+      ],
+      "presenting_complaint": "My cat vomited up a hairball this morning. She ate her breakfast straight after and is acting completely normally.",
+      "red_flags": [],
+      "vet_rationale": "Occasional hairball vomiting is normal in cats. Normal behaviour, appetite, and hydration afterwards: no veterinary visit needed. Recommend hairball prevention (regular grooming, hairball paste/diet)."
+    },
+    {
+      "id": "PA033",
+      "species": "dog",
+      "breed_hint": "Beagle, 2 years, male neutered",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Mild allergic skin reaction – suspected insect bite",
+      "source_reference": "MSD Veterinary Manual – Hypersensitivity Disorders in Dogs",
+      "condensed_findings": [
+        "small hive on face",
+        "mild swelling around muzzle",
+        "occurred outside",
+        "not spreading",
+        "no vomiting",
+        "breathing normally",
+        "alert and playful"
+      ],
+      "presenting_complaint": "My dog got a small hive on his face after being outside. His muzzle is slightly puffy but it's not spreading. He's playing normally and breathing fine.",
+      "red_flags": [
+        "monitor for progression to anaphylaxis: difficulty breathing, collapse, vomiting, rapid spread = upgrade to EMERGENCY"
+      ],
+      "vet_rationale": "Mild, non-progressive urticaria/angioedema limited to face: monitor closely at home. If spreads, breathing changes, or vomiting starts → emergency."
+    },
+    {
+      "id": "PA034",
+      "species": "cat",
+      "breed_hint": "Tabby, 3 years, male neutered",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Sneezing – mild upper respiratory tract infection",
+      "source_reference": "MSD Veterinary Manual – Feline Upper Respiratory Tract Infections",
+      "condensed_findings": [
+        "sneezing for 2 days",
+        "mild nasal discharge (clear)",
+        "bright and alert",
+        "eating and drinking normally",
+        "no eye discharge",
+        "no fever"
+      ],
+      "presenting_complaint": "My cat has been sneezing for two days with a little clear nasal discharge. He's eating and drinking well and seems perfectly bright.",
+      "red_flags": [
+        "monitor for: not eating, thick/yellow discharge, eye changes, breathing difficulty = upgrade to URGENT"
+      ],
+      "vet_rationale": "Mild URTI with clear discharge, normal appetite/hydration: supportive care at home (humid environment, steam). Vet visit if not improved in 5-7 days or signs worsen."
+    },
+    {
+      "id": "PA035",
+      "species": "dog",
+      "breed_hint": "Cocker Spaniel, 5 years, female spayed",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Superficial skin wound – minor laceration",
+      "source_reference": "MSD Veterinary Manual – Wound Management",
+      "condensed_findings": [
+        "small cut on paw pad",
+        "minor bleeding stopped",
+        "wound less than 1cm",
+        "not limping",
+        "wound clean",
+        "no deep tissue visible"
+      ],
+      "presenting_complaint": "My dog cut her paw on something in the garden. The bleeding stopped after I applied pressure. It's a small clean cut, she's walking normally.",
+      "red_flags": [
+        "if wound >2cm, deep, gaping, or won't stop bleeding = URGENT"
+      ],
+      "vet_rationale": "Small, clean, superficial wounds with bleeding controlled: clean gently with saline, apply non-adherent dressing. Monitor for infection. Routine vet check if not healed in 5-7 days."
+    },
+    {
+      "id": "PA036",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 1 year, female spayed",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Constipation – mild, first episode",
+      "source_reference": "MSD Veterinary Manual – Constipation in Cats",
+      "condensed_findings": [
+        "no stool for 24 hours",
+        "straining slightly",
+        "producing small amounts",
+        "eating and drinking normally",
+        "alert",
+        "no blood",
+        "first episode"
+      ],
+      "presenting_complaint": "My young cat hasn't passed a stool since yesterday. She's straining a little in the litter box but is eating normally and seems fine otherwise.",
+      "red_flags": [
+        "monitor for: producing nothing at all, multiple episodes, blood, pain, vomiting = upgrade; and verify is stool not urine straining"
+      ],
+      "vet_rationale": "Mild single-episode constipation in young otherwise healthy cat: ensure hydration, add pumpkin/fibre. If no stool in 48h or signs worsen, seek vet advice."
+    },
+    {
+      "id": "PA037",
+      "species": "dog",
+      "breed_hint": "Border Collie, 3 years, male neutered",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Limping – mild soft tissue injury",
+      "source_reference": "MSD Veterinary Manual – Musculoskeletal Disorders in Dogs",
+      "condensed_findings": [
+        "mild limp on front right leg",
+        "weight bearing",
+        "no swelling",
+        "no deformity",
+        "occurred after vigorous play",
+        "normal in morning"
+      ],
+      "presenting_complaint": "My dog is limping slightly on his front right leg after a long game of fetch. He's still putting weight on it and there's no swelling.",
+      "red_flags": [
+        "non-weight-bearing or swelling/deformity = upgrade to URGENT"
+      ],
+      "vet_rationale": "Weight-bearing soft-tissue strain after exercise: rest 24-48h. If not improved or worsens, routine vet appointment. No emergency required."
+    },
+    {
+      "id": "PA038",
+      "species": "cat",
+      "breed_hint": "Domestic Longhair, 5 years, female spayed",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Mild skin irritation / over-grooming",
+      "source_reference": "MSD Veterinary Manual – Feline Dermatology",
+      "condensed_findings": [
+        "hair loss on belly",
+        "licking excessively",
+        "no skin lesions",
+        "no scabs or sores",
+        "eating and drinking normally",
+        "indoor cat",
+        "no recent changes except new washing powder"
+      ],
+      "presenting_complaint": "My cat has been over-grooming her belly and there's a thin patch of fur. No sores or redness, just excessive licking. She's otherwise completely normal.",
+      "red_flags": [],
+      "vet_rationale": "Psychogenic alopecia or contact irritation (new cleaning product): remove potential irritant. Routine vet visit if persists >2 weeks or skin becomes inflamed."
+    },
+    {
+      "id": "PA039",
+      "species": "dog",
+      "breed_hint": "Labrador, 1 year, male neutered",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Loose stool – mild dietary change",
+      "source_reference": "MSD Veterinary Manual – Diarrhoea in Dogs",
+      "condensed_findings": [
+        "soft stools for 1 day",
+        "owner changed food brand recently",
+        "no vomiting",
+        "eating and drinking normally",
+        "bright and playful",
+        "no blood in stool"
+      ],
+      "presenting_complaint": "My dog has had soft stools today. We changed his food to a new brand two days ago. He's eating, drinking and playing normally.",
+      "red_flags": [],
+      "vet_rationale": "Soft stool after food change: transition gradually over 7 days. Withhold new food, return to old. Probiotics helpful. Vet only if persists >3-4 days or blood appears."
+    },
+    {
+      "id": "PA040",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 2 years, male neutered",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Mild lethargy after vaccination",
+      "source_reference": "MSD Veterinary Manual – Vaccination Guidelines; WSAVA Vaccination Guidelines",
+      "condensed_findings": [
+        "vaccinated this morning",
+        "mild lethargy",
+        "eating less but still eating",
+        "no vomiting",
+        "no swelling at injection site",
+        "temperature normal"
+      ],
+      "presenting_complaint": "My cat had his booster vaccine this morning and seems a bit quiet and less interested in food this afternoon. He's eaten a little.",
+      "red_flags": [
+        "watch for: facial swelling, vomiting within 1h, collapse, difficulty breathing = anaphylaxis = EMERGENCY"
+      ],
+      "vet_rationale": "Mild lethargy and reduced appetite 24h post-vaccination is a normal, expected reaction. No action needed unless signs of anaphylaxis develop."
+    },
+    {
+      "id": "PA041",
+      "species": "dog",
+      "breed_hint": "Poodle, 4 years, male neutered",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Anal gland discomfort – scooting",
+      "source_reference": "MSD Veterinary Manual – Anal Sac Disease in Dogs",
+      "condensed_findings": [
+        "dragging bottom along floor",
+        "scooting",
+        "licking bottom",
+        "no blood",
+        "eating and drinking normally",
+        "no swelling visible"
+      ],
+      "presenting_complaint": "My dog has been scooting his bottom along the carpet and licking his rear. He's otherwise completely normal.",
+      "red_flags": [
+        "if swelling, abscess, or blood visible = URGENT"
+      ],
+      "vet_rationale": "Anal gland impaction: routine expression by vet or groomer. Not an emergency. Routine appointment within a few days."
+    },
+    {
+      "id": "PA042",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 6 years, female spayed",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Mild conjunctivitis – one eye, clear discharge",
+      "source_reference": "MSD Veterinary Manual – Conjunctivitis in Cats",
+      "condensed_findings": [
+        "watery eye discharge",
+        "mild redness of conjunctiva",
+        "one eye only",
+        "no corneal cloudiness",
+        "eating normally",
+        "no fever"
+      ],
+      "presenting_complaint": "My cat has a watery, slightly red eye. Just one eye, no cloudiness. She's eating and acting normally.",
+      "red_flags": [
+        "if cloudy cornea, squinting severely, or yellow discharge = URGENT"
+      ],
+      "vet_rationale": "Mild unilateral serous conjunctivitis: routine vet appointment within 3-5 days. Clean gently with saline. If cornea involved or signs worsen: upgrade."
+    },
+    {
+      "id": "PA043",
+      "species": "dog",
+      "breed_hint": "Golden Retriever, 7 years, male neutered",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Ear scratching – mild otitis externa without systemic signs",
+      "source_reference": "MSD Veterinary Manual – Otitis Externa in Dogs",
+      "condensed_findings": [
+        "scratching at ear",
+        "mild odour",
+        "no discharge visible",
+        "eating normally",
+        "not in severe pain",
+        "head shaking occasionally"
+      ],
+      "presenting_complaint": "My dog has been scratching at his ear and I can smell something. He's not in obvious distress and is otherwise fine.",
+      "red_flags": [
+        "if severe pain, head tilt, or pus = URGENT"
+      ],
+      "vet_rationale": "Mild otitis externa: routine vet appointment within a week for ear examination and cleaning. Not an emergency."
+    },
+    {
+      "id": "PA044",
+      "species": "cat",
+      "breed_hint": "Domestic Shorthair, 3 years, male neutered",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Broken nail – no bleeding",
+      "source_reference": "MSD Veterinary Manual – Nail Disorders in Cats",
+      "condensed_findings": [
+        "broken claw",
+        "no bleeding",
+        "minor licking at paw",
+        "walking normally",
+        "no swelling"
+      ],
+      "presenting_complaint": "My cat broke a nail. There's no bleeding, he's walking normally and just occasionally licks the paw.",
+      "red_flags": [
+        "if nail is hanging/attached and bleeding = URGENT for removal"
+      ],
+      "vet_rationale": "Broken nail without bleeding or exposed quick: clean gently. Routine vet visit if concerned about infection. Not an emergency."
+    },
+    {
+      "id": "PA045",
+      "species": "dog",
+      "breed_hint": "French Bulldog, 2 years, male neutered",
+      "ground_truth_category": "SELF_CARE",
+      "ground_truth_condition": "Mild reverse sneezing episode – brachycephalic",
+      "source_reference": "MSD Veterinary Manual – Respiratory Disorders of Brachycephalic Dogs",
+      "condensed_findings": [
+        "sudden snorting/honking sound",
+        "episode lasted 30 seconds",
+        "resolved spontaneously",
+        "French Bulldog",
+        "eating and drinking normally",
+        "no cyanosis",
+        "first occurrence"
+      ],
+      "presenting_complaint": "My French Bulldog made a weird snorting/honking sound for about 30 seconds, like he was trying to breathe in. Then it just stopped and he's fine now.",
+      "red_flags": [
+        "frequent episodes or cyanosis = URGENT; single brief episode = normal variant in brachycephalic breeds"
+      ],
+      "vet_rationale": "Reverse sneezing is common in brachycephalic breeds and usually benign. Single brief episode with spontaneous resolution and normal behaviour: no action needed. Discuss with vet at next routine visit."
+    }
+  ],
+  "validation_status": "v1.0 — AI-assisted ground truth labels (MSD Veterinary Manual + VTL/VetTriS criteria). Formal expert consensus validation (>=3 practising veterinarians, independent label assignment, Cohen's kappa >=0.60 inclusion threshold, following Farrow 2026 protocol) is planned for v2.0. Results should be interpreted as indicative pending that validation.",
+  "species_ratio": {
+    "n_dogs": 25,
+    "n_cats": 20,
+    "dog_pct": 55.6,
+    "cat_pct": 44.4,
+    "design_note": "Feline cases over-sampled vs SAVSNET primary-care consultation data (64.8% dogs / 30.3% cats) to ensure adequate coverage of species-specific emergencies: permethrin toxicosis, aortic thromboembolism, feline urethral obstruction, diabetic ketoacidosis. Target for v2.0: rebalance to ~30 dogs / 15 cats (67%/33%) matching SAVSNET anchor.",
+    "savsnet_reference": "Sanchez-Vizcaino F et al. BMC Vet Res 2017;13:218."
+  },
+  "references": [
+    "Semigran HL et al. BMJ 2015;351:h3480. doi:10.1136/bmj.h3480",
+    "Ruys LJ et al. J Vet Emerg Crit Care 2012;22:303-312.",
+    "Groesser NH et al. J Vet Emerg Crit Care 2025. doi:10.1111/vec.70068",
+    "Farrow M, O'Neill DG, Packer RMA. PLOS ONE 2026. PMC12810856. doi:10.1371/journal.pone.0339723",
+    "Wong et al. Vet Record 2026;198(2):e46-e53. doi:10.1136/vetrec.e46",
+    "Sanchez-Vizcaino F et al. BMC Vet Res 2017;13:218. doi:10.1186/s12917-017-1137-x",
+    "Levine DM et al. NPJ Digit Med 2023;6:25. doi:10.1038/s41746-023-00773-3"
+  ]
+}
